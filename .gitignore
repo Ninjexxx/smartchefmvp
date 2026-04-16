@@ -1,0 +1,29 @@
+# Ambiente e segredos
+.env
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+
+# Logs
+*.log
+
+# Pastas temporárias
+audio_temp/
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Scripts auxiliares
+start_server.py

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <title>SmartChef</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #ff6b35;
+            --primary-dark: #e55a2b;
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --surface2: #0f3460;
+            --text: #eee;
+            --text-muted: #aaa;
+            --success: #4ade80;
+            --radius: 16px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        header h1 { font-size: 1.5rem; }
+        header small { opacity: 0.8; font-size: 0.8rem; }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            margin-top: 4px;
+        }
+        .status-demo { background: #fbbf24; color: #000; }
+        .status-live { background: var(--success); color: #000; }
+
+        /* ── Screens ────────────────────────────────────── */
+        .screen { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
+        .screen.active { display: block; }
+
+        /* ── Input Screen ───────────────────────────────── */
+        .input-group { margin-bottom: 20px; }
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        textarea, input[type="number"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--surface2);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus, input:focus { border-color: var(--primary); }
+        textarea { resize: none; height: 100px; }
+
+        .camera-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border: 2px dashed var(--surface2);
+            border-radius: var(--radius);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .camera-btn:active { border-color: var(--primary); color: var(--primary); }
+        .camera-btn input { display: none; }
+
+        .time-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid var(--surface2);
+            background: transparent;
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .chip.active { border-color: var(--primary); background: var(--primary); }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-primary:disabled { opacity: 0.5; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* ── Loading ────────────────────────────────────── */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid var(--surface2);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Recipe Screen ──────────────────────────────── */
+        .recipe-header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .recipe-header h2 { font-size: 1.3rem; margin-bottom: 8px; }
+        .recipe-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .recipe-meta span { display: flex; align-items: center; gap: 4px; }
+
+        .macros-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .macro-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        .macro-card .value { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .macro-card .label { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* ── Steps ──────────────────────────────────────── */
+        .steps-container { margin-bottom: 80px; }
+        .step-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--surface2);
+            transition: all 0.3s;
+        }
+        .step-card.active { border-left-color: var(--primary); background: var(--surface2); }
+        .step-card.done { border-left-color: var(--success); opacity: 0.6; }
+        .step-number {
+            font-size: 0.75rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .step-text { font-size: 0.95rem; line-height: 1.5; }
+
+        /* ── Bottom Nav (step control) ──────────────────── */
+        .step-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--surface2);
+            padding: 12px 20px;
+            display: none;
+            gap: 10px;
+            justify-content: center;
+            z-index: 10;
+        }
+        .step-nav.visible { display: flex; }
+        .step-nav button {
+            flex: 1;
+            max-width: 160px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-prev { background: var(--surface2); color: var(--text); }
+        .btn-next { background: var(--primary); color: #fff; }
+        .btn-done { background: var(--success); color: #000; }
+
+        /* ── Image preview ──────────────────────────────── */
+        .img-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: var(--radius);
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🍳 SmartChef</h1>
+    <small>Receitas inteligentes com IA</small>
+    <div id="statusBadge" class="status-badge status-demo">DEMO</div>
+</header>
+
+<!-- ═══ TELA 1: Input ═══ -->
+<div id="screenInput" class="screen active">
+    <div class="input-group">
+        <label>📸 Foto dos ingredientes</label>
+        <label class="camera-btn" for="cameraInput">
+            📷 Tirar foto ou escolher imagem
+            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+        </label>
+        <img id="imgPreview" class="img-preview" alt="Preview">
+    </div>
+
+    <div class="input-group">
+        <label>✏️ Ou digite seus ingredientes</label>
+        <textarea id="ingredientesInput" placeholder="Ex: frango, tomate, cebola, arroz..."></textarea>
+    </div>
+
+    <div class="input-group">
+        <label>⏱️ Tempo disponível</label>
+        <div class="time-chips">
+            <button class="chip" data-time="10">10 min</button>
+            <button class="chip" data-time="15">15 min</button>
+            <button class="chip active" data-time="30">30 min</button>
+            <button class="chip" data-time="45">45 min</button>
+            <button class="chip" data-time="60">1h+</button>
+        </div>
+    </div>
+
+    <button id="btnGerar" class="btn-primary">🚀 Gerar Receita</button>
+</div>
+
+<!-- ═══ TELA 2: Loading ═══ -->
+<div id="screenLoading" class="screen">
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Preparando sua receita...</p>
+        <small style="color:var(--text-muted)">A IA está analisando seus ingredientes</small>
+    </div>
+</div>
+
+<!-- ═══ TELA 3: Receita ═══ -->
+<div id="screenReceita" class="screen">
+    <div class="recipe-header">
+        <h2 id="receitaNome"></h2>
+        <div class="recipe-meta">
+            <span id="receitaDificuldade"></span>
+            <span id="receitaFonte"></span>
+        </div>
+    </div>
+
+    <div class="macros-grid">
+        <div class="macro-card">
+            <div class="value" id="macroCal">-</div>
+            <div class="label">kcal</div>
+        </div>
+        <div class="macro-card">
+            <div class="value" id="macroProt">-</div>
+            <div class="label">proteína</div>
+        </div>
+        <div class="macro-card">
+            <div class="value" id="macroCarb">-</div>
+            <div class="label">carbo</div>
+        </div>
+        <div class="macro-card">
+            <div class="value" id="macroGord">-</div>
+            <div class="label">gordura</div>
+        </div>
+    </div>
+
+    <div id="stepsContainer" class="steps-container"></div>
+
+    <button id="btnVoltar" class="btn-primary" style="background:var(--surface2);margin-bottom:20px;">
+        ← Nova receita
+    </button>
+</div>
+
+<!-- ═══ Bottom Nav ═══ -->
+<div id="stepNav" class="step-nav">
+    <button class="btn-prev" id="btnPrev">← Anterior</button>
+    <button class="btn-next" id="btnNext">Próximo →</button>
+</div>
+
+<script>
+    const API = window.location.origin;
+    let tempoSelecionado = 30;
+    let receitaAtual = null;
+    let passoAtual = 0;
+    let imagemFile = null;
+
+    // ── Screens ─────────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('stepNav').classList.toggle('visible', id === 'screenReceita');
+    }
+
+    // ── Status check ────────────────────────────────────
+    fetch(`${API}/api/status`).then(r => r.json()).then(s => {
+        const badge = document.getElementById('statusBadge');
+        if (s.demo_mode) {
+            badge.textContent = 'DEMO';
+            badge.className = 'status-badge status-demo';
+        } else {
+            badge.textContent = 'LIVE';
+            badge.className = 'status-badge status-live';
+        }
+    }).catch(() => {});
+
+    // ── Time chips ──────────────────────────────────────
+    document.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            tempoSelecionado = parseInt(chip.dataset.time);
+        });
+    });
+
+    // ── Camera ──────────────────────────────────────────
+    document.getElementById('cameraInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        imagemFile = file;
+        const preview = document.getElementById('imgPreview');
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+    });
+
+    // ── Gerar receita ───────────────────────────────────
+    document.getElementById('btnGerar').addEventListener('click', async () => {
+        const ingredientes = document.getElementById('ingredientesInput').value.trim();
+
+        if (!ingredientes && !imagemFile) {
+            alert('Informe ingredientes ou tire uma foto!');
+            return;
+        }
+
+        showScreen('screenLoading');
+
+        try {
+            let receita;
+
+            if (imagemFile) {
+                const form = new FormData();
+                form.append('imagem', imagemFile);
+                form.append('tempo_minutos', tempoSelecionado);
+                const resp = await fetch(`${API}/api/receita/imagem`, { method: 'POST', body: form });
+                receita = await resp.json();
+            } else {
+                const resp = await fetch(`${API}/api/receita`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ingredientes, tempo_minutos: tempoSelecionado }),
+                });
+                receita = await resp.json();
+            }
+
+            if (receita.detail) throw new Error(receita.detail);
+
+            receitaAtual = receita;
+            renderReceita(receita);
+            showScreen('screenReceita');
+        } catch (err) {
+            alert('Erro: ' + err.message);
+            showScreen('screenInput');
+        }
+    });
+
+    // ── Render receita ──────────────────────────────────
+    function renderReceita(r) {
+        document.getElementById('receitaNome').textContent = r.nome_receita;
+        document.getElementById('receitaDificuldade').textContent = `📊 ${r.dificuldade}`;
+        document.getElementById('receitaFonte').textContent = `via ${r.fonte}`;
+
+        document.getElementById('macroCal').textContent = Math.round(r.macros.calorias);
+        document.getElementById('macroProt').textContent = `${r.macros.proteinas.toFixed(1)}g`;
+        document.getElementById('macroCarb').textContent = `${r.macros.carbo.toFixed(1)}g`;
+        document.getElementById('macroGord').textContent = `${r.macros.gorduras.toFixed(1)}g`;
+
+        const container = document.getElementById('stepsContainer');
+        container.innerHTML = r.passos.map((p, i) => `
+            <div class="step-card" id="step-${i}">
+                <div class="step-number">PASSO ${i + 1}</div>
+                <div class="step-text">${p}</div>
+            </div>
+        `).join('');
+
+        passoAtual = 0;
+        updateStepUI();
+    }
+
+    // ── Step navigation ─────────────────────────────────
+    function updateStepUI() {
+        if (!receitaAtual) return;
+        const total = receitaAtual.passos.length;
+
+        document.querySelectorAll('.step-card').forEach((card, i) => {
+            card.classList.remove('active', 'done');
+            if (i === passoAtual) card.classList.add('active');
+            else if (i < passoAtual) card.classList.add('done');
+        });
+
+        const activeCard = document.getElementById(`step-${passoAtual}`);
+        if (activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        document.getElementById('btnPrev').disabled = passoAtual === 0;
+        const btnNext = document.getElementById('btnNext');
+
+        if (passoAtual >= total - 1) {
+            btnNext.textContent = '✅ Finalizar';
+            btnNext.className = 'btn-done';
+        } else {
+            btnNext.textContent = 'Próximo →';
+            btnNext.className = 'btn-next';
+        }
+    }
+
+    document.getElementById('btnNext').addEventListener('click', () => {
+        if (!receitaAtual) return;
+        if (passoAtual < receitaAtual.passos.length - 1) {
+            passoAtual++;
+            updateStepUI();
+        } else {
+            showScreen('screenInput');
+            resetInput();
+        }
+    });
+
+    document.getElementById('btnPrev').addEventListener('click', () => {
+        if (passoAtual > 0) {
+            passoAtual--;
+            updateStepUI();
+        }
+    });
+
+    // ── Voltar ──────────────────────────────────────────
+    document.getElementById('btnVoltar').addEventListener('click', () => {
+        showScreen('screenInput');
+        resetInput();
+    });
+
+    function resetInput() {
+        receitaAtual = null;
+        imagemFile = null;
+        document.getElementById('ingredientesInput').value = '';
+        document.getElementById('imgPreview').style.display = 'none';
+        document.getElementById('cameraInput').value = '';
+    }
+</script>
+</body>
+</html>
