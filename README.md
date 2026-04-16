@@ -1,6 +1,6 @@
 # SmartChef MVP
 
-Assistente de culinária inteligente que gera receitas detalhadas a partir de ingredientes — por texto ou foto.
+Assistente de culinária inteligente que gera receitas detalhadas a partir de ingredientes por texto ou foto.
 
 ## Como funciona
 
